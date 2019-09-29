@@ -797,6 +797,7 @@ newer."
                    (:hugo-paired-shortcodes "HUGO_PAIRED_SHORTCODES" nil org-hugo-paired-shortcodes space)
                    (:hugo-pandoc-citations "HUGO_PANDOC_CITATIONS" nil nil)
                    (:bibliography "BIBLIOGRAPHY" nil nil newline) ;Used in ox-hugo-pandoc-cite
+                   (:hugo-export-rmarkdown "HUGO_EXPORT_RMARKDOWN" nil) ;Export to R Markdown
 
                    ;; Front-matter variables
                    ;; https://gohugo.io/content-management/front-matter/#front-matter-variables
@@ -1638,6 +1639,7 @@ INFO is a plist used as a communication channel."
 
 
 ;;; Transcode Functions
+
 
 ;;;; Code (<kdb> tags)
 (defun org-hugo-kbd-tags-maybe (verbatim _contents info)
@@ -3609,7 +3611,9 @@ are \"toml\" and \"yaml\"."
                      "HUGO_PANDOC_CITATIONS"
                      "BIBLIOGRAPHY"
                      "HUGO_AUTO_SET_LASTMOD"
+                     "HUGO_EXPORT_RMARKDOWN"
                      "AUTHOR")))
+
     (mapcar (lambda (str)
               (concat "EXPORT_" str))
             prop-list)))
@@ -4074,7 +4078,9 @@ Return output file's name."
                 (org-export--get-buffer-attributes)
                 (org-export-get-environment 'hugo subtreep)))
          (pub-dir (org-hugo--get-pub-dir info))
-         (outfile (org-export-output-file-name ".md" subtreep pub-dir)))
+         (outfile (org-export-output-file-name (if (org-hugo--plist-get-true-p info :hugo-export-rmarkdown)
+                                                   ".rmarkdown" ".md") subtreep pub-dir)))
+
     ;; (message "[org-hugo-export-to-md DBG] section-dir = %s" section-dir)
     (prog1
         (org-export-to-file 'hugo outfile async subtreep visible-only)
