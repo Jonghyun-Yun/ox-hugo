@@ -72,6 +72,7 @@
 
 ;;; Code:
 
+(require 'ox-ravel)
 (require 'ox-blackfriday)
 (require 'ffap)                         ;For `ffap-url-regexp'
 (require 'ob-core)                      ;For `org-babel-parse-header-arguments'
