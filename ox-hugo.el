@@ -1702,6 +1702,7 @@ user has requested for it.)"
 
 ;;; Transcode Functions
 
+
 ;;;; Code (<kdb> tags)
 (defun org-hugo-kbd-tags-maybe (verbatim _contents info)
   "Wrap text in VERBATIM object with HTML kbd tags.
@@ -3673,6 +3674,7 @@ are \"toml\" and \"yaml\"."
                      "HUGO_AUTO_SET_LASTMOD"
                      "HUGO_EXPORT_RMARKDOWN"
                      "AUTHOR")))
+
     (mapcar (lambda (str)
               (concat "EXPORT_" str))
             prop-list)))
