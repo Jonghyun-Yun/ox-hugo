@@ -17,6 +17,7 @@
     "-t" ,(concat "markdown-citations"
                   "-simple_tables"
                   "+pipe_tables"
+                  "-raw_attribute"
                   "-fenced_divs"
                   "-fenced_code_attributes"
                   "-bracketed_spans")
@@ -63,7 +64,7 @@ arguments.")
   "Buffer to contain the `pandoc' run output and errors.")
 
 (defvar org-hugo-pandoc-cite--references-header-regexp
-  "^<div id=\"refs\" class=\"references\">$"
+  "^<div id=\"refs\" .*>$"
   "Regexp to match the Pandoc-inserted references header string.
 
 This string is present only if Pandoc has resolved one or more
@@ -193,10 +194,21 @@ Required fixes:
                               "\\\\>}}")))
           (while (re-search-forward regexp nil :noerror)
             (let* ((sc-body (match-string-no-properties 1))
-                   (sc-body-no-newlines (replace-regexp-in-string
-                                         "\n" " " sc-body)))
-              (replace-match (format "{{< %s >}}" sc-body-no-newlines)
-                             :fixedcase)))))
+                   (sc-body-no-newlines (replace-regexp-in-string "\n" " " sc-body))
+                   (sc-body-no-backlash (replace-regexp-in-string
+                                         (rx "\\" (group anything)) "\\1" sc-body-no-newlines)))
+              (replace-match (format "{{< %s >}}" sc-body-no-backlash) :fixedcase)))))
+
+      ;; Fix square bracket. \[ abc \] -> [ abc ]
+      (save-excursion
+        (let ((regexp (concat
+                       "\\\\\\["
+                       "\\(.+\\)"
+                       "\\\\\\]")))
+          (while (re-search-forward regexp nil :noerror)
+            (let* ((sc-body (match-string-no-properties 1)))
+              ;; (message "square bracket [%s]" sc-body)
+              (replace-match (format "[%s]" sc-body) :fixedcase)))))
 
       (buffer-substring-no-properties (point-min) (point-max)))))
 

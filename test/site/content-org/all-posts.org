@@ -162,6 +162,10 @@ even when inside page bundle pages.
           =org-hugo-default-static-subdirectory-for-externals=.
 ***** Same image, but hyperlinked to itself
 [[../files-to-be-copied-to-static/foo/copy-2-of-unicorn-logo.png][file:../files-to-be-copied-to-static/foo/copy-2-of-unicorn-logo.png]]
+*** Link to an image with space in filename
+This is a link to a file with a space in the filename:
+{{{oxhugoissue(376)}}}
+[[file:../files-to-be-copied-to-static/foo/unicorn logo.png][Link to ~unicorn logo.png~]]
 ** Inline hyperlinked and non-hyperlinked images                     :inline:
 :PROPERTIES:
 :EXPORT_FILE_NAME: inline-images
@@ -520,6 +524,15 @@ happen in post titles ({{{hugoissue(4175)}}}).
 :END:
 - All the Org markup characters are removed.
 - The "markup characters" not doing actual markup are retained.
+** 2020-04-19
+:PROPERTIES:
+:EXPORT_FILE_NAME: title-with-just-date-chars
+:END:
+#+begin_description
+Test the case where the title contains only the date, making it look
+like a Hugo TOML date field.
+#+end_description
+{{{oxhugoissue(350)}}}
 * Excluded post                                                    :noexport:
 :PROPERTIES:
 :EXPORT_FILE_NAME: excluded-post
@@ -3368,6 +3381,26 @@ y  &= a^L
 \begin{equation}
 \phi_j(x) = \mathrm{exp}\left\{ - \frac{(x - \mu_j)^2}{2s^2} \right\}
 \end{equation}
+*** ~x <0 \\~
+{{{oxhugoissue(348)}}}
+
+\begin{equation}
+\begin{cases}
+u_t = ku_{xx} \\
+u(x,0) = T_1 , & x <0 \\
+u(x,0) = T_2 , & x > 0
+\end{cases}
+\end{equation}
+*** ~[ .. ]( .. )~ in a LaTeX equation
+{{{oxhugoissue(349)}}}
+
+In the below equation, without the escaping hack, the Markdown parser
+gets fooled into thinking that ~[ e^{at} \right](z)~ is a Markdown
+link!
+
+\begin{equation}
+\mathcal{L}\left[ e^{at} \right](z) = \frac{1}{z-a}
+\end{equation}
 * Lists                                                               :lists:
 ** List following a list
 :PROPERTIES:
@@ -4520,9 +4553,57 @@ with spaces was added in {{{commit(7691f0453b)}}}.
 :PROPERTIES:
 :EXPORT_FILE_NAME: level-offset-default
 :END:
-*** Heading 1
-**** Heading 1.1
-*** Heading 2
+#+begin_description
+Test for multiple levels of headings that could even go beyond the max
+~<h6>~ heading level supported by HTML.
+#+end_description
+*** Heading 1 Level 1
+**** Heading 1 Level 2
+***** Heading 1 Level 3
+****** Heading 1 Level 4
+******* Heading 1 Level 5
+******** Heading 1 Level 6
+********* Heading 1 Level 7
+********** Heading 1 Level 8
+*** Heading 2 Level 1
+H2 L1 Content
+**** Heading 2 Level 2
+H2 L2 Content
+
+- H2 L2 item 1
+- H2 L2 item 2
+***** Heading 2 Level 3
+- H2 L3 item 1
+- H2 L3 item 2
+
+H2 L3 Content
+****** Heading 2 Level 4
+H2 L4 Content
+
+- H2 L4 item 1
+- H2 L4 item 2
+
+H2 L4 Content
+******* Heading 2 Level 5
+H2 L5 Content
+******** Heading 2 Level 6
+H2 L6 Content
+
+- H2 L6 item 1
+- H2 L6 item 2
+********* Heading 2 Level 7
+- H2 L7 item 1
+- H2 L7 item 2
+
+H2 L7 Content
+********** Heading 2 Level 8
+H2 L8 Content
+
+- H2 L8 item 1
+- H2 L8 item 2
+
+H2 L8 Content
+*** Heading 3 Level 1
 ** Level offset unset
 :PROPERTIES:
 :EXPORT_FILE_NAME: level-offset-unset
@@ -5739,7 +5820,39 @@ will need to remain unescaped:
   </script>
 </div>
 #+end_export
+**** ~#+begin_export html~ blocks with script tag
+{{{oxhugoissue(369)}}}
 
+Check that ~src="https://example.com"~ does not become
+~src="<https://example.com>"~.
+
+- Note :: Below iframe/script will *not* work on this site because of
+          the strict [[https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP][CSP]]. Anyways. this site is to test just the
+          Markdown exported by ox-hugo. So please see "/✱ Markdown
+          source of this page/" above.
+
+#+begin_src org
+,#+begin_export html
+<div class="glitch-embed-wrap" style="height: 420px; width: 100%;">
+  <iframe
+    src="https://glitch.com/embed/#!/embed/silken-football?path=app.py&previewSize=0&sidebarCollapsed=true"
+    title="silken-football on Glitch"
+    style="height: 100%; width: 100%; border: 0;">
+  </iframe>
+</div>
+,#+end_export
+#+end_src
+
+#+begin_export html
+<div class="glitch-embed-wrap" style="height: 420px; width: 100%;">
+  <iframe
+    src="https://glitch.com/embed/#!/embed/silken-football?path=app.py&previewSize=0&sidebarCollapsed=true"
+    title="silken-football on Glitch"
+    style="height: 100%; width: 100%; border: 0;">
+  </iframe>
+</div>
+#+end_export
+**** To see the exported HTML
 /See the Markdown source of this page to see the verbatim-inserted
 HTML./
 * Miscellaneous Front Matter                                   :front_matter:

@@ -765,6 +765,36 @@ For history behind this change, see {{{issue(247)}}}. \\
 :EXPORT_FILE_NAME: usage
 :END:
 #+include: "./ox-hugo-manual.org::#usage" :only-contents t
+*** Goldmark (Hugo v0.60+)
+:PROPERTIES:
+:EXPORT_FILE_NAME: goldmark
+:END:
+Since Hugo v0.60.0, the default Markdown-parser has switched to the
+[[https://commonmark.org/][CommonMark]]-compliant [[https://github.com/yuin/goldmark][Goldmark]]. The previously default Markdown-parser
+[[https://github.com/russross/blackfriday][Blackfriday]] is not compliant with any spec, and has many bugs (for
+which ~ox-hugo~ needs to keep adding workarounds).
+
+See [[https://gohugo.io/news/0.60.0-relnotes/][these Hugo v0.60.0 release notes]] to learn more.
+
+So unless there's a strong reason for an ~ox-hugo~ user to keep on
+using Blackfriday, _please switch to Goldmark_. You will need to start
+using Hugo v0.60.0 or newer for that.
+**** Enable "unsafe" HTML
+Having said that, Goldmark/Hugo come with their own set of issues or
+regressions in the way the Markdown parsing happens when compared to
+Blackfriday, but they are not as bad compared to supporting
+Blackfriday.
+
+For ~ox-hugo~ to keep working well with Goldmark or Hugo v0.60+, it is
+_necessary_ to add this to your Hugo site's ~config.toml~:
+
+#+begin_src toml
+[markup.goldmark.renderer]
+  unsafe = true
+#+end_src
+
+/While that setting sounds scary, all that does is allow have inline
+HTML in your Markdown, *as CommonMark allows!*/
 *** How do I try =ox-hugo= on my site?
 :PROPERTIES:
 :EXPORT_FILE_NAME: how-do-I-try-it
@@ -1012,7 +1042,19 @@ heading and how it exports to Markdown in [[https://raw.githubusercontent.com/ka
 *** Dates
 :PROPERTIES:
 :EXPORT_FILE_NAME: dates
+:EXPORT_HUGO_USE_CODE_FOR_KBD: t
 :END:
+**** Date Formats
+The =EXPORT_DATE= and other date-type properties support date in
+either the [[https://tools.ietf.org/html/rfc3339#section-5.8][RFC3339 date-time format]][fn:8] or the in-built Org
+time-stamp (default binding ~C-c .~).
+- RFC3339 date-time examples ::
+  - =2017-09-12=
+  - =2017-09-12T16:10:10= (data and time are separated by *T*)
+  - =2017-09-12T16:10:10Z= (UTC time zone)
+  - =2017-09-12T16:10:10-04:00= (UTC-04:00 time zone)
+- Org time stamp example ::
+  - =<2020-05-17 Sun>=
 **** Defcustoms
 ***** =org-hugo-date-format=
 :PROPERTIES:
@@ -2173,7 +2215,7 @@ accessed at =/foo.png=.
 
 More detail for this conventional approach can be found in the
 documentation for [[#references-to-files-in-the-static-directory][referencing files in static directory]].
-**** But.. what about putting images along with the content?
+**** Images and Regular Pages
 OK, so with that short intro out of the way, =ox-hugo= supports
 putting the /attachment files/ in the same directory as the source Org
 files!
@@ -2218,12 +2260,70 @@ can see those images inline too!
 
 #+attr_html: :alt Screenshot of an Org mode buffer showing image in content
 [[file:/images/images-in-content-screenshot.png]]
-**** Examples
+***** Examples
+:PROPERTIES:
+:CUSTOM_ID: images-and-regular-bundles-examples
+:END:
 Whether you prefer the subtree-based approach or file-based approach
 for writing your posts in Org, there are examples for both in the
 =ox-hugo= test suite:
 - [[https://github.com/kaushalmodi/ox-hugo/tree/master/test/site/content-org/images-in-content][Org source]]
 - [[https://github.com/kaushalmodi/ox-hugo/tree/master/test/site/content/images-in-content][Exported Markdown]]
+**** Images and Page Bundles
+/See [[*Hugo Bundle][Hugo Bundle]] section on how to define those via ~ox-hugo~./
+
+*Only for page bundles*, when a link points to a local attachment, and
+the image path contains the hugo bundle name, following attachment
+copying rules apply:
+- Assume that the bundle is a /Leaf Bundle/ and its name is ~bundle-1~
+  (~:EXPORT_HUGO_BUNDLE: bundle-1~) and that the image (attachment)
+  path relative to the Org file is
+  ~some-dir-1/bundle-1/some-dir-2/image.png~.
+- The attachment's path relative to "bundle-1" is retained and copied
+  to the "bundle-1" directory in the content dir. The /path before/
+  the "bundle-1" in the attachment path is ignored.
+- So after the export, we will see a directory structure like this in
+  the content dir:
+  #+begin_example
+  ./content
+  ..
+   └── bundle-1
+      ├── index.md
+      └── some-dir-2/image.png
+  #+end_example
+
+#+begin_note
+If the attachment path does _not_ contain the bundle name, it will be
+copied as usual to the ~static/~ directory (See the documentation for
+[[#references-to-files-in-the-static-directory][referencing files in static directory]]).
+#+end_note
+***** Examples
+:PROPERTIES:
+:CUSTOM_ID: images-and-page-bundles-examples
+:END:
+#+begin_example
+./content-org
+├── posts.org
+│    * Bundle 1 (Org subtree)    →  ./content/bundle-1/index.md
+│      [[file:bundle-1/image1.png]]
+│      [[file:images/bundle-1/image.png]]
+│
+│    * Bundle 2 (Org subtree)    →  ./content/bundle-2/index.md
+│      [[file:images/bundle-2/some-dir/image.png]]
+│
+├── bundle-1
+│  └── image1.png                →  ./content/bundle-1/image1.png
+└── images/
+   ├── bundle-1
+   │  └── image2.png             →  ./content/bundle-1/image2.png
+   └── bundle-2
+      └── some-dir
+         └── image.png           →  ./content/bundle-2/some-dir/image.png
+#+end_example
+
+Another example from the test suite:
+- [[https://raw.githubusercontent.com/kaushalmodi/ox-hugo/master/test/site/content-org/images-in-content/images-in-content.org][~images-in-content.org::* Page Bundle with images in the same dir~]] |
+  [[https://raw.githubusercontent.com/kaushalmodi/ox-hugo/master/test/site/content/images-in-content/page-bundle-images-in-same-dir/index.md][Exported Markdown]] | [[https://ox-hugo.scripter.co/test/images-in-content/page-bundle-images-in-same-dir/][HTML]]
 *** Replace Front-matter Keys
 :PROPERTIES:
 :EXPORT_FILE_NAME: replace-front-matter-keys
@@ -2464,6 +2564,23 @@ be fixed.
 
 (Of course, open an issue whenever any ~ox-hugo~ export does not do
 things as you expect :smile:)
+*** Org-ref Citations
+:PROPERTIES:
+:EXPORT_FILE_NAME: org-ref-citations
+:END:
+[[https://github.com/jkitchin/org-ref][Org-ref]] citations can be exported to Hugo-compatible markdown via the
+[[https://github.com/andras-simonyi/citeproc-org][citeproc-org]] package. To enable this, simply install ~citeproc-org~
+from MELPA, and run the setup hook. With ~use-package~, this looks
+like:
+
+#+begin_src emacs-lisp
+(use-package citeproc-org
+  :ensure t
+  :after ox-hugo
+  :config
+  (citeproc-org-setup))
+#+end_src
+
 *** Custom Front-matter Parameters
 :PROPERTIES:
 :EXPORT_FILE_NAME: custom-front-matter
@@ -2871,7 +2988,7 @@ So that line-unwrapping _with space removal_ is done *only if*,
 2. The /locale/ is *manually set* to Chinese or Japanese by setting it
    to *zh* or *ja* using ~#+hugo_locale:~ keyword (or
    ~EXPORT_HUGO_LOCALE~ property).
-*** COMMENT Hugo Bundle
+*** Hugo Bundle
 :PROPERTIES:
 :EXPORT_FILE_NAME: hugo-bundle
 :END:
@@ -2880,6 +2997,45 @@ Specifying the [[https://gohugo.io/content-management/page-bundles/][Hugo Page B
 ~_index.md~ (/branch/ bundle index file) or ~index.md~ (/page/ bundle
 index file).
 #+end_description
+To make an ~ox-hugo~ export happen to a Hugo Page Bundle, set the
+~:EXPORT_HUGO_BUNDLE:~ property to the "name of the bundle". For
+example, if the bundle needs to be generated as
+~https://example.com/xyz/~, set ~:EXPORT_HUGO_BUNDLE: xyz~.
+
+- Leaf Bundle :: Set ~:EXPORT_FILE_NAME: index~
+- Branch Bundle :: Set ~:EXPORT_FILE_NAME: _index~
+
+#+begin_note
+For file-based flow, use ~#+hugo_bundle~ and ~#+export_file_name~
+keywords instead.
+#+end_note
+**** Examples
+***** Leaf Bundle
+:PROPERTIES:
+:CUSTOM_ID: leaf-bundle-example
+:END:
+Below will export to ~content/xyz/index.md~.
+#+begin_src org
+,* Page title
+:PROPERTIES:
+:EXPORT_HUGO_BUNDLE: xyz
+:EXPORT_FILE_NAME: index
+:END:
+Content
+#+end_src
+***** Branch Bundle
+:PROPERTIES:
+:CUSTOM_ID: branch-bundle-example
+:END:
+Below will export to ~content/uvw/_index.md~.
+#+begin_src org
+,* Page title
+:PROPERTIES:
+:EXPORT_HUGO_BUNDLE: uvw
+:EXPORT_FILE_NAME: _index
+:END:
+Content
+#+end_src
 **** More Reading
 - [[https://scripter.co/hugo-leaf-and-branch-bundles/][scripter.co -- Hugo: Leaf and Branch Bundles]]
 ** Meta
@@ -2955,6 +3111,8 @@ and /mark.js/. -- [[https://gist.github.com/eddiewebb/735feb48f50f0ddd65ae5606a1
 :END:
 #+include: "./ox-hugo-manual.org::#test" :only-contents t
 * Footnotes
+
+[fn:8] The [[https://github.com/toml-lang/toml#local-date-time][TOML date-time]] uses the same RFC3339 format.
 
 [fn:7] The Pandoc Citations feature was last tested on
 <2019-01-03 Thu> with Pandoc version {{{pandoc_version}}}. If you are

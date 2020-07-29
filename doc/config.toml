@@ -43,6 +43,11 @@ disableFastRender = true        # Hugo 0.30
 
 disableKinds = ["taxonomy", "taxonomyTerm"]
 
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true # This is *necessary* for ox-hugo to work well with Hugo 0.60.0+
+
 [caches]
   [caches.getjson]
     dir = ":cacheDir/:project"

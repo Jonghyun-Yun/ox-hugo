@@ -315,6 +315,8 @@ Blackfriday happy.  So:
   \"\\\\=}\" -> \"\\\\\\=}\"
   \"\\|\" -> \"\\\\|\"
 
+  \"](\" -> \"\\]\\(\"
+
 and finally:
 
   \"\\\\\" -> \"\\\\\\\\\\\\\"."
@@ -324,6 +326,8 @@ and finally:
          (escaped-str (replace-regexp-in-string "(\\(c\\|r\\|tm\\))" "( \\1)" escaped-str))
          ;; \( -> \\(, \) -> \\), \[ -> \\[, \] -> \\], \{ -> \\{, \} -> \\}, \| -> \\|
          (escaped-str (replace-regexp-in-string "\\(\\\\[](){}[|]\\)" "\\\\\\1" escaped-str))
+         ;; ]( -> \]\(
+         (escaped-str (replace-regexp-in-string "](" "\\\\]\\\\(" escaped-str))
          (escaped-str (replace-regexp-in-string
                        "\\([^\\]\\)\\\\\\{2\\}[[:blank:]]*$" ;Replace "\\" at EOL with:
                        "\\1\\\\\\\\\\\\\\\\\\\\\\\\"             ;"\\\\\\"
@@ -738,7 +742,7 @@ communication channel."
                    (org-html-plain-list plain-list contents info)))
       (let* ((next (org-export-get-next-element plain-list info))
              (next-type (org-element-type next)))
-        ;; (message "next type: %s" next-type)
+        ;; (message "content: `%s', next type: %s" contents next-type)
         (setq ret (org-blackfriday--div-wrap-maybe plain-list contents))
         (when (member next-type '(plain-list
                                   src-block example-block)) ;https://github.com/russross/blackfriday/issues/556

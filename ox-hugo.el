@@ -736,13 +736,13 @@ newer."
 (org-export-define-derived-backend 'hugo 'blackfriday ;hugo < blackfriday < md < html
   :menu-entry
   '(?H "Export to Hugo-compatible Markdown"
-       ((?H "Subtree or File to Md file"
+       ((?H "Subtree or File to Md file            "
             (lambda (a _s v _b)
               (org-hugo-export-wim-to-md nil a v)))
         (?h "File to Md file"
             (lambda (a s v _b)
               (org-hugo-export-to-md a s v)))
-        (?O "Subtree or File to Md file and open"
+        (?O "Subtree or File to Md file and open   "
             (lambda (a _s v _b)
               (if a
                   (org-hugo-export-wim-to-md nil :async v)
@@ -752,7 +752,7 @@ newer."
               (if a
                   (org-hugo-export-to-md :async s v)
                 (org-open-file (org-hugo-export-to-md nil s v)))))
-        (?A "All subtrees (or File) to Md file(s)"
+        (?A "All subtrees (or File) to Md file(s)  "
             (lambda (a _s v _b)
               (org-hugo-export-wim-to-md :all-subtrees a v)))
         (?t "File to a temporary Md buffer"
@@ -1836,7 +1836,12 @@ a communication channel."
                                       headline info))))
                          ".")))
               (heading (concat todo-fmtd " " priority title))) ;Headline text without tags
-          (concat bullet (make-string (- 4 (length bullet)) ?\s) heading tags "\n\n"
+          (concat "<!--list-separator-->\n\n"
+                  ;; Above is needed just in case the body of the
+                  ;; section above is ending with a plain list. That
+                  ;; HTML comment will force-end the <ul> or <ol> tag
+                  ;; of that preceding list.
+                  bullet " " heading tags "\n\n"
                   (and contents (replace-regexp-in-string "^" "    " contents)))))
        (t
         (let* ((anchor (format "{#%s}" ;https://gohugo.io/extras/crossreferences/
@@ -2318,7 +2323,15 @@ and rewrite link paths to make blogging more seamless."
                   (org-link-unescape desc)))
          ;; Only link description, but no link attributes.
          (desc
-          (format "[%s](%s)" desc path))
+          (let* ((path-has-space (and
+                                  (not (string-prefix-p "{{< relref " path))
+                                  (string-match-p "\\s-" path)))
+                 (path (if path-has-space
+                           ;; https://github.com/kaushalmodi/ox-hugo/issues/376
+                           ;; https://github.com/gohugoio/hugo/issues/6742#issuecomment-573924706
+                           (format "<%s>" path)
+                         path)))
+            (format "[%s](%s)" desc path)))
          ;; Only link attributes, but no link description.
          (link-param-str
           (let ((path (org-html-encode-plain-text path)))
@@ -2368,17 +2381,16 @@ PATH is the path to the image or any other attachment.
 INFO is a plist used as a communication channel."
   ;; (message "[ox-hugo attachment DBG] The Hugo section is: %s" (plist-get info :hugo-section))
   ;; (message "[ox-hugo attachment DBG] The Hugo base dir is: %s" (plist-get info :hugo-base-dir))
-  (let* ((path-unhexified (url-unhex-string path))
+  (let* ((pub-dir (org-hugo--get-pub-dir info)) ;This needs to happen first so that the check for HUGO_BASE_DIR happens.
+         (hugo-base-dir (file-name-as-directory (plist-get info :hugo-base-dir)))
+         (path-unhexified (url-unhex-string path))
          (path-true (file-truename path-unhexified))
          (exportables org-hugo-external-file-extensions-allowed-for-copying)
-         (bundle-dir (and (plist-get info :hugo-bundle)
-                          (org-hugo--get-pub-dir info)))
+         (bundle-dir (and (plist-get info :hugo-bundle) pub-dir))
          (bundle-name (when bundle-dir
                         (let* ((content-dir (file-truename
-                                             (file-name-as-directory (expand-file-name
-                                                                      "content"
-                                                                      (file-name-as-directory
-                                                                       (plist-get info :hugo-base-dir))))))
+                                             (file-name-as-directory
+                                              (expand-file-name "content" hugo-base-dir))))
                                (is-home-branch-bundle (string= bundle-dir content-dir)))
                           (cond
                            (is-home-branch-bundle
@@ -2386,9 +2398,8 @@ INFO is a plist used as a communication channel."
                            (t ;`bundle-dir'="/foo/bar/" -> `bundle-name'="bar"
                             (file-name-base (directory-file-name bundle-dir)))))))
          (static-dir (file-truename
-                      (concat
-                       (file-name-as-directory (plist-get info :hugo-base-dir))
-                       "static/")))
+                      (file-name-as-directory
+                       (expand-file-name "static" hugo-base-dir))))
          (dest-dir (or bundle-dir static-dir))
          ret)
     (unless (file-directory-p static-dir)
@@ -2798,6 +2809,10 @@ BODY is the result of the export.
 INFO is a plist holding export options."
   ;; Copy the page resources to the bundle directory.
   (org-hugo--maybe-copy-resources info)
+  ;; (message "[ox-hugo body filter] ITEM %S" (org-entry-get (point) "ITEM"))
+  ;; (message "[ox-hugo body filter] TAGS: %S" (org-entry-get (point) "TAGS"))
+  ;; (message "[ox-hugo body filter] ALLTAGS: %S" (org-entry-get (point) "ALLTAGS"))
+
   ;; `org-md-plain-text' would have escaped all underscores in plain
   ;; text i.e. "_" would have been converted to "\_".
   ;; We need to undo that underscore escaping in Emoji codes for those
@@ -2805,13 +2820,11 @@ INFO is a plist holding export options."
   ;; Example: Convert ":raised\_hands:" back to ":raised_hands:".
   ;; More Emoji codes: https://www.emoji.codes/
   ;; (Requires setting "enableEmoji = true" in config.toml.)
-  ;; (message "[ox-hugo body filter] ITEM %S" (org-entry-get (point) "ITEM"))
-  ;; (message "[ox-hugo body filter] TAGS: %S" (org-entry-get (point) "TAGS"))
-  ;; (message "[ox-hugo body filter] ALLTAGS: %S" (org-entry-get (point) "ALLTAGS"))
   (setq body (replace-regexp-in-string
               "\\(:[a-z0-9]+\\)[\\]\\(_[a-z0-9]+:\\)"
               "\\1\\2"
               body))
+
   (when (and (org-hugo--plist-get-true-p info :hugo-delete-trailing-ws)
              (not (org-hugo--plist-get-true-p info :preserve-breaks)))
     (setq body (with-temp-buffer
@@ -3050,7 +3063,7 @@ to ((name . \"foo\") (weight . 80))."
     valid-menu-alist))
 
 (defun org-hugo--get-sanitized-title (info)
-  "Return sanitized version of an Org headline TITLE.
+  "Return sanitized version of an Org headline TITLE as a string.
 
 INFO is a plist used as a communication channel.
 
@@ -3062,7 +3075,10 @@ If the extracted document title is nil, and exporting the title
 is disabled, return nil.
 
 If the extracted document title is non-nil, return it after
-removing all markup characters."
+removing all markup characters.
+
+Also double-quote the title if it doesn't already contain any
+double-quotes."
   (let ((title (when (plist-get info :with-title)
                  (plist-get info :title))))
     (when title
@@ -3090,7 +3106,14 @@ removing all markup characters."
         (setq title (replace-regexp-in-string "---\\([^-]\\)" "—\\1" title)) ;EM DASH
         (setq title (replace-regexp-in-string "--\\([^-]\\)" "–\\1" title)) ;EN DASH
 
-        (setq title (replace-regexp-in-string "\\.\\.\\." "…" title)))) ;HORIZONTAL ELLIPSIS
+        (setq title (replace-regexp-in-string "\\.\\.\\." "…" title)) ;HORIZONTAL ELLIPSIS
+
+        ;; Double-quote the title so that even if the title contains
+        ;; just numbers or a date, it still gets rendered as a string
+        ;; type in Hugo. Do this only if the title doesn't already
+        ;; contain double-quotes.
+        (unless (string-match "\"" title)
+          (setq title (format "\"%s\"" title)))))
     title))
 
 (defun org-hugo--replace-underscores-with-spaces (str)
@@ -3673,6 +3696,7 @@ are \"toml\" and \"yaml\"."
                      "BIBLIOGRAPHY"
                      "HUGO_AUTO_SET_LASTMOD"
                      "HUGO_EXPORT_RMARKDOWN"
+                     "LANGUAGE"
                      "AUTHOR")))
 
     (mapcar (lambda (str)

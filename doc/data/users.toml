@@ -394,6 +394,29 @@
   site = "https://robinwils.gitlab.io"
   org_dir = "content-org"
 
+[mikeyobrien]
+  author = "Mikey O'Brien"
+  source = "https://github.com/mikeyobrien/blog"
+  site = "https://www.mikeyobrien.com"
+
+[wych42]
+  author = "chi"
+  source = "https://github.com/wych42/wych42.github.io"
+  site = "https://yuchi.me/en"
+  branch = "source"
+  
+[mrprofessor]
+  author = "Rudra Narayan"
+  source = "https://github.com/mrprofessor/rudra.dev"
+  site = "https://rudra.dev"
+
+[panchoh]
+  author = "pancho horrillo"
+  source = "https://github.com/panchoh/panchoh.github.io"
+  site = "https://blog.pancho.name"
+  branch = "source"
+
+
 # []
 #   author = ""
 #   source = ""
